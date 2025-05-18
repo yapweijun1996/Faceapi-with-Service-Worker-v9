@@ -258,6 +258,22 @@
 		})();
 		</script>
 
+		<!-- Resource timing logging -->
+		<script>
+		(function(){
+			if ('PerformanceObserver' in window) {
+				var observer = new PerformanceObserver(function(list) {
+					list.getEntries().forEach(function(entry) {
+						console.log('Resource', entry.initiatorType, entry.name, Math.round(entry.duration) + 'ms');
+					});
+				});
+				observer.observe({ entryTypes: ['resource'], buffered: true });
+			} else {
+				console.warn('PerformanceObserver not supported for resource logging');
+			}
+		})();
+		</script>
+
 		<script>
 			/**
 			 * ================================
