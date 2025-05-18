@@ -57,6 +57,7 @@ async function camera_start() {
 		video.srcObject = stream;
 	} catch (error) {
 		console.error('Error accessing webcam:', error);
+		alert('Unable to access camera. Please check permissions. ' + error.name + ': ' + error.message);
 	}
 }
 
@@ -650,18 +651,30 @@ function faceapi_warmup() {
 	}
 }
 
-//initWorker();
-window.onload = function(e){ 
-    //console.log("window.onload"); 
-	//initWorker();
+// Main-thread fallback for environments without SW/OffscreenCanvas (e.g. iOS PWA)
+async function startInMainThread() {
+    console.log("Main-thread fallback: loading face-api models directly");
+    await faceapi.nets.tinyFaceDetector.loadFromUri('../models');
+    await faceapi.nets.faceLandmark68Net.loadFromUri('../models');
+    await faceapi.nets.faceRecognitionNet.loadFromUri('../models');
+    if (Array.isArray(warmup_completed)) {
+        warmup_completed.forEach(func => func());
+    }
 }
 
+// Initialize either service worker or fallback on main thread
 document.addEventListener("DOMContentLoaded", async function(event) {
-    /* 
-    - Code to execute when only the HTML document is loaded.
-    - This doesn't wait for stylesheets, 
-    images, and subframes to finish loading. 
-    */
-    console.log("DOMContentLoaded"); 
-    await initWorker();
+    console.log("DOMContentLoaded - checking Service Worker support");
+    const canUseWorker = 'serviceWorker' in navigator && typeof OffscreenCanvas !== 'undefined';
+    if (canUseWorker) {
+        try {
+            await initWorker();
+        } catch (e) {
+            console.warn("initWorker failed, falling back to main thread", e);
+            await startInMainThread();
+        }
+    } else {
+        console.warn("Service Worker or OffscreenCanvas not available; using main thread");
+        await startInMainThread();
+    }
 });
