@@ -712,14 +712,32 @@ window.onload = function(e){
 // Insert main-thread fallback functions for environments without OffscreenCanvas
 async function mainThreadInit() {
     console.log("Main-thread face detection init");
+    // Load Tiny Face Detector model
     try {
-        await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
-        await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
-        await faceapi.nets.faceRecognitionNet.loadFromUri('./models');
-        console.log("Models loaded on main thread");
+        console.log("Loading tinyFaceDetector model from '/models'");
+        await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+        console.log("tinyFaceDetector model loaded");
     } catch (err) {
-        console.error("Error loading models on main thread:", err);
+        console.error("Error loading tinyFaceDetector model:", err);
     }
+    // Load Face Landmark model
+    try {
+        console.log("Loading faceLandmark68Net model from '/models'");
+        await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+        console.log("faceLandmark68Net model loaded");
+    } catch (err) {
+        console.error("Error loading faceLandmark68Net model:", err);
+    }
+    // Load Face Recognition model
+    try {
+        console.log("Loading faceRecognitionNet model from '/models'");
+        await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+        console.log("faceRecognitionNet model loaded");
+    } catch (err) {
+        console.error("Error loading faceRecognitionNet model:", err);
+    }
+    console.log("Main-thread model load complete");
+    // Start camera and detection loop
     camera_start();
     video_face_detection_main();
 }
