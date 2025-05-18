@@ -32,38 +32,6 @@ var step_fps = 125 ; // 1000 / 125 = 8 FPS
 var vle_face_landmark_position_yn = "y" ; // y / n
 var vle_facebox_yn = "y" ; // y / n
 
-// Debug and UI log control flags
-var debug_yn = "y";          // "y" or "n" to control console output
-var console_log_yn = "y";    // "y" to append logs to the on-page console
-
-// Wrap console methods to conditionally output to both browser console and UI
-(function() {
-	const origLog = console.log.bind(console);
-	const origWarn = console.warn.bind(console);
-	const origError = console.error.bind(console);
-	function appendLog(level, args) {
-		const container = document.getElementById('console-log');
-		if (!container) return;
-		const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-		const entry = document.createElement('div');
-		entry.textContent = `[${level}] ${msg}`;
-		entry.style.whiteSpace = 'pre-wrap';
-		container.appendChild(entry);
-		container.scrollTop = container.scrollHeight;
-	}
-	console.log = function(...args) {
-		if (debug_yn === 'y') origLog(...args);
-		if (console_log_yn === 'y') appendLog('LOG', args);
-	};
-	console.warn = function(...args) {
-		if (debug_yn === 'y') origWarn(...args);
-		if (console_log_yn === 'y') appendLog('WARN', args);
-	};
-	console.error = function(...args) {
-		if (debug_yn === 'y') origError(...args);
-		if (console_log_yn === 'y') appendLog('ERROR', args);
-	};
-})();
 
 var isWorkerReady = false;
 var worker = "";
@@ -448,124 +416,109 @@ function faceapi_verify(descriptor){
 }
 
 async function initWorkerAddEventListener() {
-    // Listen for messages from the service worker container
-    navigator.serviceWorker.addEventListener('message', (event) => {
-        // Always log the incoming type for debug
-        console.log('SW->client message type:', event.data.type);
-        // Handle SW debug logs specially
-        if (event.data.type === 'DEBUG_LOG' && event.data.data && event.data.data.msg) {
-            console.log(`[SW_DEBUG] ${event.data.data.msg}`);
-            return;
-        }
-        switch (event.data.type) {
-            case 'MODELS_LOADED':
-                console.log('Face detection models loaded.');
-                faceapi_warmup();
-                break;
-            case 'DETECTION_RESULT':
-                console.log("DETECTION_RESULT here");
-                console.log(event);
-                console.log(event.data.data.detections[0]);
-                console.log("event.data.data.detections");
-                console.log(event.data.data.detections);
-                
-                
-                if(event.data.data.detections[0] !== null){
-                    if(typeof event.data.data.detections[0][0]["descriptor"] !== "undefined"){
-                        console.log("descriptor : ");
-                        console.log(event.data.data.detections[0][0]["descriptor"]);
-                        var temp_descriptor = event.data.data.detections[0][0]["descriptor"];
-                        
-                        if(faceapi_action == "verify"){
-                            faceapi_verify(temp_descriptor);
-                        }else if(faceapi_action == "register"){
-                            faceapi_register(temp_descriptor);
-                        }else{
-                            console.log("faceapi_action is NULL");
-                        }
-                        
-                        
-                    }
-                    try{drawImageDataToCanvas(event.data.data.detections, canvasOutputId);}catch(err){console.log(err);}
-                }
-                
-                if(typeof vle_face_landmark_position_yn === "string"){
-                    if(vle_face_landmark_position_yn == "y"){
-                        
-                        var temp_canvas_id = canvasId2;
-                        var temp_canvas = document.getElementById(temp_canvas_id);
-                        
-                        if (event.data.data.detections[0] !== null) {
-                            console.log("drawFaceLandmarks");
-                            draw_face_landmarks();
-                        }else{
-                            temp_canvas.style.display = "none";
-                        }
-                    }	
-                }
-                
-                
-                if(typeof vle_facebox_yn === "string"){
-                    if(vle_facebox_yn == "y"){
-                        var temp_canvas_id = canvasId3;
-                        var temp_canvas = document.getElementById(temp_canvas_id);
-                        if (event.data.data.detections[0] !== null) {
-                            // facebox
-                            console.log("draw_face_box");
-                            if (event.data.data.detections[0] && event.data.data.detections[0] !== undefined) {
-                                var box = event.data.data.detections[0][0].alignedRect._box;
-                                var confidence = event.data.data.detections[0][0].detection._score;
+	navigator.serviceWorker.addEventListener('message', (event) => {
+		console.log('event.data.type.');
+		console.log(event.data.type);
+		switch (event.data.type) {
+			case 'MODELS_LOADED':
+			console.log('Face detection models loaded.');
+			faceapi_warmup();
+			break;
+			case 'DETECTION_RESULT':
+			console.log("DETECTION_RESULT here");
+			console.log(event);
+			console.log(event.data.data.detections[0]);
+			console.log("event.data.data.detections");
+			console.log(event.data.data.detections);
+			
+			
+			if(event.data.data.detections[0] !== null){
+				if(typeof event.data.data.detections[0][0]["descriptor"] !== "undefined"){
+					console.log("descriptor : ");
+					console.log(event.data.data.detections[0][0]["descriptor"]);
+					var temp_descriptor = event.data.data.detections[0][0]["descriptor"];
+					
+					if(faceapi_action == "verify"){
+						faceapi_verify(temp_descriptor);
+					}else if(faceapi_action == "register"){
+						faceapi_register(temp_descriptor);
+					}else{
+						console.log("faceapi_action is NULL");
+					}
+					
+					
+				}
+				try{drawImageDataToCanvas(event.data.data.detections, canvasOutputId);}catch(err){console.log(err);}
+			}
+			
+			if(typeof vle_face_landmark_position_yn === "string"){
+				if(vle_face_landmark_position_yn == "y"){
+					
+					var temp_canvas_id = canvasId2;
+					var temp_canvas = document.getElementById(temp_canvas_id);
+					
+					if (event.data.data.detections[0] !== null) {
+						console.log("drawFaceLandmarks");
+						draw_face_landmarks();
+					}else{
+						temp_canvas.style.display = "none";
+					}
+				}	
+			}
+			
+			
+			if(typeof vle_facebox_yn === "string"){
+				if(vle_facebox_yn == "y"){
+					var temp_canvas_id = canvasId3;
+					var temp_canvas = document.getElementById(temp_canvas_id);
+					if (event.data.data.detections[0] !== null) {
+						// facebox
+						console.log("draw_face_box");
+						if (event.data.data.detections[0] && event.data.data.detections[0] !== undefined) {
+							var box = event.data.data.detections[0][0].alignedRect._box;
+							var confidence = event.data.data.detections[0][0].detection._score;
 
-                                // Check if box is defined and not null
-                                if (box && box._x !== undefined && box._y !== undefined && box._width !== undefined && box._height !== undefined) {
-                                    // Safe to call the function as box is valid
-                                    draw_face_box(temp_canvas_id, box, confidence);
-                                } else {
-                                    console.log("Box is not defined or invalid");
-                                }
-                            }
-                        }else{
-                            temp_canvas.style.display = "none";
-                        }
-                    }
-                }
-                
-                
-                // After all drawing operations are complete, mark detection as done and queue the next frame.
-                isDetectingFrame = false;
-                if (typeof videoDetectionStep === 'function') {
-                    requestAnimationFrame(videoDetectionStep);
-                }
-                
-                break;
-            case 'WARMUP_RESULT':
-                console.log('WARMUP_RESULT.');
-                console.log(event);
-                console.log(event.data.data.detections);
-                
-                if (typeof warmup_completed !== 'undefined') {
-                    // Execute all functions in the array
-                    if (warmup_completed.length > 0) {
-                        warmup_completed.forEach(func => func());
-                    }
-                }else{
-                    setTimeout(faceapi_warmup, 10000);
-                }
-                
-                break;
-            default:
-                console.log('Unknown message type:', event.data.type);
-        }
-    });
-    // Additional listener on the controlling service worker (for Safari compatibility)
-    if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.addEventListener('message', (event) => {
-            console.log('controller->client message type:', event.data.type);
-            if (event.data.type === 'DEBUG_LOG' && event.data.data && event.data.data.msg) {
-                console.log(`[SW_DEBUG] ${event.data.data.msg}`);
-            }
-        });
-    }
+							// Check if box is defined and not null
+							if (box && box._x !== undefined && box._y !== undefined && box._width !== undefined && box._height !== undefined) {
+								// Safe to call the function as box is valid
+								draw_face_box(temp_canvas_id, box, confidence);
+							} else {
+								console.log("Box is not defined or invalid");
+							}
+						}
+					}else{
+						temp_canvas.style.display = "none";
+					}
+				}
+			}
+			
+			
+			// After all drawing operations are complete, mark detection as done and queue the next frame.
+			isDetectingFrame = false;
+			if (typeof videoDetectionStep === 'function') {
+				requestAnimationFrame(videoDetectionStep);
+			}
+			
+			break;
+			case 'WARMUP_RESULT':
+			console.log('WARMUP_RESULT.');
+			console.log(event);
+			console.log(event.data.data.detections);
+			
+			if (typeof warmup_completed !== 'undefined') {
+				// Execute all functions in the array
+				if (warmup_completed.length > 0) {
+					warmup_completed.forEach(func => func());
+				}
+			}else{
+				setTimeout(faceapi_warmup, 10000);
+			}
+			
+			break;
+			default:
+			console.log('Unknown message type:', event.data.type);
+		}
+	});
 }
 
 async function workerRegistration() {
@@ -703,95 +656,12 @@ window.onload = function(e){
 	//initWorker();
 }
 
-// Comment out the existing automatic initialization on DOMContentLoaded
-//document.addEventListener("DOMContentLoaded", async function(event) {
-//    console.log("DOMContentLoaded"); 
-//    await initWorker();
-//});
-
-// Insert main-thread fallback functions for environments without OffscreenCanvas
-async function mainThreadInit() {
-    console.log("Main-thread face detection init");
-    // Load Tiny Face Detector model
-    try {
-        console.log("Loading tinyFaceDetector model from '/models'");
-        await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-        console.log("tinyFaceDetector model loaded");
-    } catch (err) {
-        console.error("Error loading tinyFaceDetector model:", err);
-    }
-    // Load Face Landmark model
-    try {
-        console.log("Loading faceLandmark68Net model from '/models'");
-        await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-        console.log("faceLandmark68Net model loaded");
-    } catch (err) {
-        console.error("Error loading faceLandmark68Net model:", err);
-    }
-    // Load Face Recognition model
-    try {
-        console.log("Loading faceRecognitionNet model from '/models'");
-        await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-        console.log("faceRecognitionNet model loaded");
-    } catch (err) {
-        console.error("Error loading faceRecognitionNet model:", err);
-    }
-    console.log("Main-thread model load complete");
-    // Start camera and detection loop
-    camera_start();
-    video_face_detection_main();
-}
-
-function video_face_detection_main() {
-    var video = document.getElementById(videoId);
-    var canvas = document.getElementById(canvasId);
-    canvas.willReadFrequently = true;
-    var context = canvas.getContext('2d');
-    context.willReadFrequently = true;
-    video.addEventListener('play', () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        async function step() {
-            if (video.paused || video.ended) return;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            try {
-                const detections = await faceapi.detectAllFaces(canvas, face_detector_options_setup).withFaceLandmarks().withFaceDescriptors();
-                if (detections.length > 0) {
-                    var det = detections[0];
-                    var box = det.alignedRect._box;
-                    var imageData = context.getImageData(box._x, box._y, box._width, box._height);
-                    drawImageDataToCanvas([[det], [imageData]], canvasOutputId);
-                    if (vle_facebox_yn === 'y') draw_face_box(canvasId3, box, det.detection._score);
-                    if (det.descriptor) {
-                        if (faceapi_action === 'verify') faceapi_verify(det.descriptor);
-                        else if (faceapi_action === 'register') faceapi_register(det.descriptor);
-                    }
-                }
-            } catch (err) {
-                console.error("Main-thread detection error:", err);
-            }
-            requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
-    });
-}
-
-// Button-triggered init with iOS detection fallback
-document.addEventListener("DOMContentLoaded", function(event) {
-    var startBtn = document.createElement('button');
-    startBtn.id = 'startBtn';
-    startBtn.textContent = 'Start Camera & Detect Faces';
-    document.body.insertBefore(startBtn, document.querySelector('.face-detection-container'));
-    startBtn.addEventListener('click', async function() {
-        startBtn.disabled = true;
-        // Detect iOS devices
-        const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isiOS || !('OffscreenCanvas' in window) || !('serviceWorker' in navigator)) {
-            console.log("Falling back to main-thread detection (iOS or unsupported API)");
-            await mainThreadInit();
-        } else {
-            console.log("Using service worker detection");
-            await initWorker();
-        }
-    });
+document.addEventListener("DOMContentLoaded", async function(event) {
+    /* 
+    - Code to execute when only the HTML document is loaded.
+    - This doesn't wait for stylesheets, 
+    images, and subframes to finish loading. 
+    */
+    console.log("DOMContentLoaded"); 
+    await initWorker();
 });

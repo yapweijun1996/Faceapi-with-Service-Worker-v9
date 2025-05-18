@@ -1,6 +1,4 @@
 // faceDetectionServiceWorker.js
-// SW debug flag: set to false to disable SW debug logs to page
-const debugSW = true;
 importScripts('faceEnvWorkerPatch.js');
 importScripts('face-api.min.js');
 
@@ -15,15 +13,11 @@ var FaceDetectorOptionsDefault = new faceapi.TinyFaceDetectorOptions({
 var face_for_loading_options = FaceDetectorOptionsDefault;
 
 async function loadModels() {
-    if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: 'SW loadModels: loading tinyFaceDetector' } });
     await faceapi.nets.tinyFaceDetector.loadFromUri('../models');
-    if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: 'SW loadModels: loading faceLandmark68Net' } });
     await faceapi.nets.faceLandmark68Net.loadFromUri('../models');
-    if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: 'SW loadModels: loading faceRecognitionNet' } });
     await faceapi.nets.faceRecognitionNet.loadFromUri('../models');
 
     isModelLoaded = true;
-    if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: 'SW loadModels: models loaded, broadcasting MODELS_LOADED' } });
     broadcast({ type: 'MODELS_LOADED' });
 }
 
@@ -40,12 +34,10 @@ async function checkModelsLoaded() {
 
 async function detectFaces(imageData, width, height) {
     if (!isModelLoaded) {
-        console.log('SW detectFaces: Models not loaded yet');
-        if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: 'SW detectFaces called before models loaded' } });
+        console.log('Models not loaded yet');
         return;
     }
 
-    if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: `SW detectFaces: creating OffscreenCanvas ${width}x${height}` } });
     const canvas = new OffscreenCanvas(width, height);
     const ctx = canvas.getContext('2d');
     ctx.putImageData(imageData, 0, 0);
@@ -83,24 +75,11 @@ async function detectFaces(imageData, width, height) {
 
 function broadcast(message) {
     clientsList.forEach(client => {
-        // send normal message
         client.postMessage(message);
-        // also send debug wrapper
-        if (debugSW) {
-            client.postMessage({
-                type: 'DEBUG_LOG',
-                data: { level: 'SW', msg: `SW broadcast: ${message.type}` }
-            });
-        }
     });
 }
 
 self.addEventListener('message', async function(event) {
-    // log incoming message to page
-    if (debugSW) {
-        const incoming = event.data && event.data.type;
-        broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: `SW received message: ${incoming}` } });
-    }
     const client = event.source;
     if (!clientsList.includes(client)) {
         clientsList.push(client);
@@ -117,11 +96,9 @@ self.addEventListener('message', async function(event) {
     var detections;
     switch (type) {
         case 'LOAD_MODELS':
-            if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: 'SW handling LOAD_MODELS' } });
             await checkModelsLoaded();
             break;
         case 'DETECT_FACES':
-            if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: `SW handling DETECT_FACES ${width}x${height}` } });
             detections = await detectFaces(imageData, width, height);
             client.postMessage({
                 type: 'DETECTION_RESULT',
@@ -132,7 +109,6 @@ self.addEventListener('message', async function(event) {
             });
             break;
         case 'WARMUP_FACES':
-            if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: 'SW handling WARMUP_FACES' } });
             detections = await detectFaces(imageData, width, height);
             client.postMessage({
                 type: 'WARMUP_RESULT',
@@ -143,8 +119,7 @@ self.addEventListener('message', async function(event) {
             });
             break;
         default:
-            console.log('Unknown message type in SW:', type);
-            if (debugSW) broadcast({ type: 'DEBUG_LOG', data: { level: 'SW', msg: `SW unknown message type: ${type}` } });
+            console.log('Unknown message type:', type);
     }
 });
 
