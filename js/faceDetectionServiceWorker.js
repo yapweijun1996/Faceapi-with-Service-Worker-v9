@@ -127,16 +127,6 @@ self.addEventListener('messageerror', function(event) {
     console.error('Service Worker message error: ', event);
 });
 
-// Broadcast runtime errors in the service worker to the page for UI debugging
-self.addEventListener('error', function(event) {
-    broadcast({ type: 'SW_ERROR', data: { message: event.message, filename: event.filename, lineno: event.lineno, colno: event.colno } });
-});
-
-// Broadcast unhandled promise rejections in the service worker
-self.addEventListener('unhandledrejection', function(event) {
-    broadcast({ type: 'SW_ERROR', data: { message: (event.reason && event.reason.message) || event.reason } });
-});
-
 // Ensure the worker activates as soon as it finishes installing and takes control
 self.addEventListener('install', event => {
     // Skip the waiting phase so this SW becomes active immediately.
