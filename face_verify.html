@@ -111,6 +111,33 @@
 			<canvas id="canvas_output" class="snapshot"></canvas>
 		</div>
 
+		<!-- Console Output Div -->
+		<div id="console-output" style="height:150px; overflow-y:auto; background:#000; color:#fff; font-family:monospace; padding:10px; box-sizing:border-box;"></div>
+		<script>
+		(function() {
+			var consoleDiv = document.getElementById('console-output');
+			function formatArgs(args) {
+				return args.map(function(arg) {
+					if (typeof arg === 'object') {
+						try { return JSON.stringify(arg); } catch (e) { return String(arg); }
+					}
+					return String(arg);
+				}).join(' ');
+			}
+			['log','error','warn','info'].forEach(function(method) {
+				var original = console[method];
+				console[method] = function() {
+					original.apply(console, arguments);
+					var msg = formatArgs(Array.prototype.slice.call(arguments));
+					var entry = document.createElement('div');
+					entry.textContent = msg;
+					entry.className = method;
+					consoleDiv.appendChild(entry);
+					consoleDiv.scrollTop = consoleDiv.scrollHeight;
+				};
+			});
+		})();
+		</script>
 
 		<script>
 			/**
