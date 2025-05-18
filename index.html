@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Face Detection</title>
+	</head>
+	<body>
+		<!-- Minimal inline CSS to center content and style links as buttons -->
+		<div style="font-family: Arial, sans-serif; margin:0; display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f5f5; width:100%;">
+			<div style="text-align:center;">
+				<h1 style="margin-bottom:24px; color:#333;">Face Detection Demo</h1>
+				<script>
+					function urlReplace(url) {
+						window.location.replace(url);
+					}
+				</script>
+				<a href="#" onclick="urlReplace('face_register.html')" style="display:block; width:220px; margin:8px auto; padding:12px 20px; background:#4CAF50; color:#fff; text-decoration:none; border-radius:4px;">face_register</a>
+				<a href="#" onclick="urlReplace('face_verify.html')" style="display:block; width:220px; margin:8px auto; padding:12px 20px; background:#FF9800; color:#fff; text-decoration:none; border-radius:4px;">face_verify</a>
+
+				<!-- Preload face-api core and warm-up helper so service worker models load in background -->
+				<script src="./js/face-api.min.js"></script>
+				<script src="./js/faceapi_warmup.js"></script>
+			</div>
+		</div>
+	</body>
+</html>

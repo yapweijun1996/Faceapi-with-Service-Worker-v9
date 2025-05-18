@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Face Detection</title>
+		<style>
+			/* General reset */
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: Arial, sans-serif;
+				background-color: #f4f4f9;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+				flex-direction: column;
+				color: #333;
+			}
+
+			/* Centering and spacing */
+			h1 {
+				font-size: 2rem;
+				margin-bottom: 20px;
+			}
+
+			/* Link styles */
+			a {
+				font-size: 1rem;
+				text-decoration: none;
+				color: #007bff;
+				margin-bottom: 20px;
+			}
+
+			a:hover {
+				text-decoration: underline;
+			}
+
+			/* Video & overlay container */
+			.video-wrapper {
+				position: relative;
+				width: 640px;
+				max-width: 100%;
+			}
+
+			/* Video element */
+			#video {
+				border-radius: 8px;
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+				width: 100%;
+				height: auto;
+				display: block;
+				transform: scaleX(-1);
+			}
+
+			/* Canvas overlays (bounding boxes, landmarks, etc.) */
+			.overlay {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				pointer-events: none; /* allow clicks to pass through */
+				display: none; /* toggled by JS */
+				border-radius: 8px;
+			}
+
+			/* Snapshot canvas shown next to video */
+			.snapshot {
+				border: 2px solid #333;
+				background-color: rgba(255, 255, 255, 0.7);
+				box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+				display: none; /* toggled by JS */
+				width: 640px;
+				height: 480px;
+				border-radius: 8px;
+			}
+
+			/* Responsive video */
+			@media (max-width: 768px) {
+				.video-wrapper {
+					width: 100%;
+				}
+
+				.snapshot {
+					max-width: 480px;
+				}
+			}
+
+			/* Full-screen responsive container */
+			.face-detection-container{
+				width:100vw;
+				height:100vh;
+				display:flex;
+				justify-content:center;
+				align-items:center;
+				flex-wrap:wrap;
+				gap:1rem;
+				padding:1rem;
+				box-sizing:border-box;
+			}
+
+			/* Ensure the video wrapper scales while keeping the 4/3 aspect ratio */
+			.video-wrapper{
+				aspect-ratio:4/3;
+				width:min(100vw,calc(100vh * 4 / 3));
+				max-width:100%;
+			}
+
+			/* Video element keeps its intrinsic ratio */
+			#video{
+				width:100%;
+				height:auto;
+				object-fit:contain;
+			}
+
+			/* Snapshot canvas follows video size */
+			.snapshot{
+				width:100%;
+				height:auto;
+				max-height:100vh;
+				aspect-ratio:4/3;
+			}
+
+			/* Adapt video & snapshot to portrait (mobile) 9:16 ratio */
+			@media (orientation: portrait){
+				.face-detection-container{
+					flex-direction:column;
+					padding:0;
+				}
+
+				.video-wrapper,
+				.snapshot{
+					width:100vw;
+					height:100vh;
+					max-width:100vw;
+					max-height:100vh;
+					aspect-ratio:auto;
+				}
+
+#video{
+	width:100%;
+	height:100%;
+	object-fit:cover;
+	transform: scaleX(-1);
+}
+
+.overlay{
+	width:100%;
+	height:100%;
+	object-fit:cover;
+}
+			}
+		</style>
+		
+		<!-- Load face-api core library first -->
+		<script src="./js/face-api.min.js"></script>
+		<!-- Then load the warm-up helper that depends on face-api -->
+		<script src="./js/faceapi_warmup.js"></script>
+		<script>
+			function urlReplace(url) {
+				window.location.replace(url); 
+			}
+		</script>
+	</head>
+	<body>
+		<h1>Face Detection</h1>
+		<a href="#" onclick="urlReplace('index.html')">Go to Index</a><br>
+		
+		<div class="face-detection-container"  style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;">
+			<div class="video-wrapper">
+				<video id="video" width="640" height="480" autoplay playsinline muted></video>
+				<!-- Hidden canvas for inference: captures each video frame to send to the worker for face detection -->
+				<canvas id="canvas" class="overlay"></canvas>
+				<!-- Overlay canvas for drawing facial landmarks on top of the video -->
+				<canvas id="canvas2" class="overlay"></canvas>
+				<!-- Overlay canvas for drawing face bounding boxes and confidence scores -->
+				<canvas id="canvas3" class="overlay"></canvas>
+			</div>
+			<!-- Snapshot canvas: displays the captured face image along with the confidence percentage -->
+			<canvas id="canvas_output" class="snapshot"></canvas>
+		</div>
+
+		<script>
+			/**
+			 * ================================
+			 * Face-API Configuration
+			 * -------------------------------
+			 * faceapi_action
+			 *   • "verify"   – Compare the live video frame against a previously
+			 *     registered reference descriptor (used in a face-verification flow).
+			 *   • "register" – Capture the detected face descriptor and store it as
+			 *     a new reference (used when enrolling a new user).
+			 *
+			 * face_detector_options_setup
+			 *   These options are forwarded to face-api.js TinyFaceDetector and allow
+			 *   you to balance performance vs. accuracy according to your use-case.
+			 *   • inputSize        – Dimension (square) of the NN input. Larger numbers
+			 *                         improve accuracy but require more computation.
+			 *   • scoreThreshold   – Minimum confidence score (0-1) that a detection
+			 *                         must reach to be considered valid. 0.8 = 80%.
+			 *   • maxDetectedFaces – Hard limit on how many faces should be processed
+			 *                         per frame. Keeping it at 1 speeds things up when
+			 *                         you only care about the user in front of the
+			 *                         camera.
+			 * ================================
+			 */
+			var faceapi_action = "register"; // verify, register
+			var warmup_completed = [camera_start, video_face_detection];
+			var face_detector_options_setup = {
+				inputSize: 128,
+				scoreThreshold: 0.75, // 0.8 = 80%
+				maxDetectedFaces: 1,
+			};
+		</script>
+	</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "faceapi-with-service-worker-v8",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yapweijun1996/Faceapi-with-Service-Worker-v8.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yapweijun1996/Faceapi-with-Service-Worker-v8/issues"
+  },
+  "homepage": "https://github.com/yapweijun1996/Faceapi-with-Service-Worker-v8#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

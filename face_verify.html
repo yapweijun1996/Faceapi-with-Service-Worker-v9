@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Face Detection</title>
+		<style>
+			html,body{margin:0;padding:0;height:100%}
+			body{font-family:Arial,Helvetica,sans-serif;display:flex;flex-direction:column;align-items:center;gap:1rem;background:#f4f4f9;color:#333}
+			h1{font-size:1.8rem}
+			a{color:#007bff;text-decoration:none;font-size:1rem}
+			a:hover{text-decoration:underline}
+			.video-wrapper{position:relative;width:640px;max-width:100%}
+			#video{border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.1);width:100%;height:auto;display:block}
+			.overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;border-radius:8px}
+			.snapshot{border:2px solid #333;background:rgba(255,255,255,.7);box-shadow:0 4px 10px rgba(0,0,0,.1);display:none;width:640px;height:480px;border-radius:8px}
+			@media(max-width:768px){.video-wrapper{width:100%}.snapshot{max-width:480px}}
+			/* Full-screen responsive container */
+			.face-detection-container{
+				width:100vw;
+				height:100vh;
+				display:flex;
+				justify-content:center;
+				align-items:center;
+				flex-wrap:wrap;
+				gap:1rem;
+				padding:1rem; /* small padding to prevent hard edge touching */
+				box-sizing:border-box;
+			}
+
+			/* Ensure the video wrapper scales while keeping the 4/3 aspect ratio */
+			.video-wrapper{
+				aspect-ratio:4/3;
+				width:min(100vw,calc(100vh * 4 / 3)); /* fit horizontal space while preserving 4:3 */
+				max-width:100%;
+			}
+
+			/* Video element keeps its intrinsic ratio */
+			#video{
+				width:100%;
+				height:auto;
+				object-fit:contain;
+			}
+
+			/* Snapshot canvas follows video size */
+			.snapshot{
+				width:100%;
+				height:auto;
+				max-height:100vh;
+				aspect-ratio:4/3;
+			}
+
+			/* Adapt video & snapshot to portrait (mobile) 9:16 ratio */
+			@media (orientation: portrait){
+				.face-detection-container{
+					flex-direction:column;
+					padding:0;
+				}
+
+				.video-wrapper,
+				.snapshot{
+					width:100vw;
+					height:100vh;
+					max-width:100vw;
+					max-height:100vh;
+					aspect-ratio:auto;
+				}
+
+				#video{
+					width:100%;
+					height:100%;
+					object-fit:cover; /* fill height, crop sides */
+				}
+
+				.overlay{
+					width:100%;
+					height:100%;
+					object-fit:cover;
+				}
+			}
+
+			/* Mirror only the video feed horizontally */
+			#video {
+				transform: scaleX(-1);
+			}
+		</style>
+		
+		<!-- Load face-api core library first -->
+		<script src="./js/face-api.min.js"></script>
+		<!-- Then load the warm-up helper that depends on face-api -->
+		<script src="./js/faceapi_warmup.js"></script>
+		<script>
+			function urlReplace(url) {
+				window.location.replace(url); 
+			}
+		</script>
+	</head>
+	<body>
+		<h1>Face Detection</h1>
+		<a href="#" onclick="urlReplace('index.html')">Go to Index</a><br>
+		
+		<input type="file" id="jsonFileInput" accept=".json" onchange="handleJsonFileInput(event)">
+		
+		<div class="face-detection-container">
+			<div class="video-wrapper">
+				<video id="video" width="640" height="480" autoplay playsinline muted></video>
+				<canvas id="canvas" class="overlay"></canvas>
+				<canvas id="canvas2" class="overlay"></canvas>
+				<canvas id="canvas3" class="overlay"></canvas>
+			</div>
+			<canvas id="canvas_output" class="snapshot"></canvas>
+		</div>
+
+
+		<script>
+			/**
+			 * ================================
+			 * Face-API Configuration
+			 * -------------------------------
+			 * faceapi_action
+			 *   • "verify"   – Compare the live video frame against a previously
+			 *     registered reference descriptor (used in a face-verification flow).
+			 *   • "register" – Capture the detected face descriptor and store it as
+			 *     a new reference (used when enrolling a new user).
+			 *
+			 * face_detector_options_setup
+			 *   These options are forwarded to face-api.js TinyFaceDetector and allow
+			 *   you to balance performance vs. accuracy according to your use-case.
+			 *   • inputSize        – Dimension (square) of the NN input. Larger numbers
+			 *                         improve accuracy but require more computation.
+			 *   • scoreThreshold   – Minimum confidence score (0-1) that a detection
+			 *                         must reach to be considered valid. 0.8 = 80%.
+			 *   • maxDetectedFaces – Hard limit on how many faces should be processed
+			 *                         per frame. Keeping it at 1 speeds things up when
+			 *                         you only care about the user in front of the
+			 *                         camera.
+			 * ================================
+			 */
+			var faceapi_action = "verify"; // "verify" | "register"
+			var face_detector_options_setup = {
+				inputSize: 128,       // NN input resolution (choose 128, 160, 224, etc.)
+				scoreThreshold: 0.33,  // Minimum confidence required for a detection
+				maxDetectedFaces: 1,  // Only track the most prominent face in the frame
+			};
+
+			// Delay camera start & detection until models are fully loaded and warmed up
+			// The worker will send WARMUP_RESULT after MODELS_LOADED, at which point
+			// faceapi_warmup.js will invoke these callbacks.
+			var warmup_completed = [camera_start, video_face_detection];
+		</script>
+	</body>
+</html>
