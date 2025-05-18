@@ -662,10 +662,25 @@ async function startInMainThread() {
     }
 }
 
+// Utility: test for real OffscreenCanvas support
+function supportsOffscreenCanvas() {
+    try {
+        if (typeof OffscreenCanvas === 'undefined' || typeof OffscreenCanvasRenderingContext2D === 'undefined') {
+            return false;
+        }
+        const oc = new OffscreenCanvas(1, 1);
+        const ctx = oc.getContext('2d');
+        return !!ctx;
+    } catch (e) {
+        return false;
+    }
+}
+
 // Initialize either service worker or fallback on main thread
 document.addEventListener("DOMContentLoaded", async function(event) {
     console.log("DOMContentLoaded - checking Service Worker support");
-    const canUseWorker = 'serviceWorker' in navigator && typeof OffscreenCanvas !== 'undefined';
+    const isIOS = /iP(hone|ad|od)/.test(navigator.platform);
+    const canUseWorker = !isIOS && 'serviceWorker' in navigator && supportsOffscreenCanvas();
     if (canUseWorker) {
         try {
             await initWorker();
