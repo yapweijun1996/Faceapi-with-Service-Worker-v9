@@ -650,18 +650,35 @@ function faceapi_warmup() {
 	}
 }
 
-//initWorker();
-window.onload = function(e){ 
-    //console.log("window.onload"); 
-	//initWorker();
+// Add main-thread fallback for environments where Service Worker or OffscreenCanvas fails
+async function startInMainThread() {
+    console.log('Main-thread fallback: loading models and starting detection');
+    await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+    await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
+    await faceapi.nets.faceRecognitionNet.loadFromUri('./models');
+    if (Array.isArray(warmup_completed)) {
+        warmup_completed.forEach(func => func());
+    }
 }
 
+window.onload = function(e){ 
+    //console.log("window.onload"); 
+    //initWorker();
+}
+
+// Update DOMContentLoaded listener to handle fallback
 document.addEventListener("DOMContentLoaded", async function(event) {
-    /* 
-    - Code to execute when only the HTML document is loaded.
-    - This doesn't wait for stylesheets, 
-    images, and subframes to finish loading. 
-    */
-    console.log("DOMContentLoaded"); 
-    await initWorker();
+    console.log("DOMContentLoaded");
+    const canUseWorker = ('serviceWorker' in navigator) && ('OffscreenCanvas' in self);
+    if (canUseWorker) {
+        try {
+            await initWorker();
+            return;
+        } catch (e) {
+            console.warn('Worker init failed, falling back to main thread:', e);
+        }
+    } else {
+        console.warn('Service worker or OffscreenCanvas not supported—using main thread');
+    }
+    await startInMainThread();
 });
