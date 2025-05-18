@@ -32,6 +32,11 @@ var step_fps = 125 ; // 1000 / 125 = 8 FPS
 var vle_face_landmark_position_yn = "y" ; // y / n
 var vle_facebox_yn = "y" ; // y / n
 
+// Debug mode flag: set to "y" to enable console.log, anything else disables it
+var debug_yn = "y"; // "y" or "n"
+if (debug_yn !== "y") {
+	console.log = function() {};
+}
 
 var isWorkerReady = false;
 var worker = "";
