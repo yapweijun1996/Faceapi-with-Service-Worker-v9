@@ -32,11 +32,38 @@ var step_fps = 125 ; // 1000 / 125 = 8 FPS
 var vle_face_landmark_position_yn = "y" ; // y / n
 var vle_facebox_yn = "y" ; // y / n
 
-// Debug mode flag: set to "y" to enable console.log, anything else disables it
-var debug_yn = "y"; // "y" or "n"
-if (debug_yn !== "y") {
-	console.log = function() {};
-}
+// Debug and UI log control flags
+var debug_yn = "y";          // "y" or "n" to control console output
+var console_log_yn = "y";    // "y" to append logs to the on-page console
+
+// Wrap console methods to conditionally output to both browser console and UI
+(function() {
+	const origLog = console.log.bind(console);
+	const origWarn = console.warn.bind(console);
+	const origError = console.error.bind(console);
+	function appendLog(level, args) {
+		const container = document.getElementById('console-log');
+		if (!container) return;
+		const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+		const entry = document.createElement('div');
+		entry.textContent = `[${level}] ${msg}`;
+		entry.style.whiteSpace = 'pre-wrap';
+		container.appendChild(entry);
+		container.scrollTop = container.scrollHeight;
+	}
+	console.log = function(...args) {
+		if (debug_yn === 'y') origLog(...args);
+		if (console_log_yn === 'y') appendLog('LOG', args);
+	};
+	console.warn = function(...args) {
+		if (debug_yn === 'y') origWarn(...args);
+		if (console_log_yn === 'y') appendLog('WARN', args);
+	};
+	console.error = function(...args) {
+		if (debug_yn === 'y') origError(...args);
+		if (console_log_yn === 'y') appendLog('ERROR', args);
+	};
+})();
 
 var isWorkerReady = false;
 var worker = "";
