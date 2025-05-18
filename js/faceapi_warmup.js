@@ -656,12 +656,75 @@ window.onload = function(e){
 	//initWorker();
 }
 
-document.addEventListener("DOMContentLoaded", async function(event) {
-    /* 
-    - Code to execute when only the HTML document is loaded.
-    - This doesn't wait for stylesheets, 
-    images, and subframes to finish loading. 
-    */
-    console.log("DOMContentLoaded"); 
-    await initWorker();
+// Comment out the existing automatic initialization on DOMContentLoaded
+//document.addEventListener("DOMContentLoaded", async function(event) {
+//    console.log("DOMContentLoaded"); 
+//    await initWorker();
+//});
+
+// Insert main-thread fallback functions for environments without OffscreenCanvas
+async function mainThreadInit() {
+    console.log("Main-thread face detection init");
+    try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('./models');
+        console.log("Models loaded on main thread");
+    } catch (err) {
+        console.error("Error loading models on main thread:", err);
+    }
+    camera_start();
+    video_face_detection_main();
+}
+
+function video_face_detection_main() {
+    var video = document.getElementById(videoId);
+    var canvas = document.getElementById(canvasId);
+    canvas.willReadFrequently = true;
+    var context = canvas.getContext('2d');
+    context.willReadFrequently = true;
+    video.addEventListener('play', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        async function step() {
+            if (video.paused || video.ended) return;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            try {
+                const detections = await faceapi.detectAllFaces(canvas, face_detector_options_setup).withFaceLandmarks().withFaceDescriptors();
+                if (detections.length > 0) {
+                    var det = detections[0];
+                    var box = det.alignedRect._box;
+                    var imageData = context.getImageData(box._x, box._y, box._width, box._height);
+                    drawImageDataToCanvas([[det], [imageData]], canvasOutputId);
+                    if (vle_facebox_yn === 'y') draw_face_box(canvasId3, box, det.detection._score);
+                    if (det.descriptor) {
+                        if (faceapi_action === 'verify') faceapi_verify(det.descriptor);
+                        else if (faceapi_action === 'register') faceapi_register(det.descriptor);
+                    }
+                }
+            } catch (err) {
+                console.error("Main-thread detection error:", err);
+            }
+            requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    });
+}
+
+// Replace automatic init with button-triggered init to satisfy user gesture requirements
+document.addEventListener("DOMContentLoaded", function(event) {
+    var startBtn = document.createElement('button');
+    startBtn.id = 'startBtn';
+    startBtn.textContent = 'Start Camera & Detect Faces';
+    document.body.insertBefore(startBtn, document.querySelector('.face-detection-container'));
+    startBtn.addEventListener('click', async function() {
+        startBtn.disabled = true;
+        if (!('OffscreenCanvas' in window)) {
+            console.warn("OffscreenCanvas not supported: using main-thread detection");
+            await mainThreadInit();
+        } else {
+            console.log("Using service worker detection");
+            await initWorker();
+        }
+    });
 });
