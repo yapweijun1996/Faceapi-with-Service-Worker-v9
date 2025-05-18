@@ -55,12 +55,6 @@ async function camera_start() {
 	try {
 		var stream = await navigator.mediaDevices.getUserMedia({ video: true });
 		video.srcObject = stream;
-		// Ensure playback starts (some browsers require explicit play())
-		try {
-			await video.play();
-		} catch (err) {
-			console.warn('video.play() failed:', err);
-		}
 	} catch (error) {
 		console.error('Error accessing webcam:', error);
 		alert('Unable to access camera. Please check permissions. ' + error.name + ': ' + error.message);
